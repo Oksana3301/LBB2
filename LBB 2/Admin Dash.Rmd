@@ -1,0 +1,89 @@
+---
+title: "Ops Dashboard - 2019"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    runtime: shiny
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(readxl)
+library(tidyverse)
+library(plotly)
+library(ggmap)
+
+remotes::install_github('rstudio/rmarkdown')
+
+require(knitr)
+
+# Read Excels Data
+americas =read_excel("data/America Hiring File.xlsx",sheet = "data")
+apac=read_excel("data/APAC Hiring File.xlsx",sheet = "data")
+europe=read_excel("data/Europe Hiring File.xlsx",sheet = "data")
+
+# New Object 
+global=rbind(americas,apac,europe)
+
+#Read file containing country coordinates
+map=read_excel("data/Coordinate Map.xlsx")
+```
+
+
+Overview {data-icon="fa-globe"}
+=============================
+Row {data-width=150}
+--------------------------------------
+### New Hires
+```{r}
+newhires=global %>% filter(`Type of movement`=="Entry") %>% nrow()
+valueBox(value = newhires,icon = "fa-user-plus",caption = "New Hires",color = "steelblue")
+```
+
+### Resign Number
+```{r}
+exits=global %>% filter(`Type of movement`=="Exit") %>% nrow()
+valueBox(value = exits,icon = "fa-user-times",caption = "Exits", color = "orange")
+```
+
+### Exchange Net Employment
+```{r}
+newhires=global %>% filter(`Type of movement`=="Entry") %>% nrow()
+exits=global %>% filter(`Type of movement`=="Exit") %>% nrow()
+
+netchange=(newhires-exits)
+
+# Data Vizualisation
+if(netchange>0){
+  valueBox(value = netchange,icon = "fa-arrow-up",caption = "Net Change", color = "forestgreen")
+} else{
+valueBox(value = netchange,icon = "fa-arrow-down",caption = "Net Change", color = "forestgreen")}
+
+```
+
+Row
+----------------------------------
+
+### Monthly Movement
+```{r}
+# Data Transformation
+h1=global %>% group_by(Month,`Type of movement`) %>% 
+  summarise(count=n())
+
+# Data Visualization
+p1=plot_ly(data = h1,
+        x=h1$Month,
+        y=h1$count) %>% 
+  add_lines(linetype = h1$`Type of movement`,
+            data = h1$count,
+            hoverinfo="text",
+            text=paste(h1$count)) %>% 
+  layout(xaxis=list(title="Month"),
+         yaxis=list(title="Total")) 
+p1
+```
+
